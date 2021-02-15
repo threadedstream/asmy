@@ -1,16 +1,37 @@
 
 ; arg0 -> rdi, arg1 -> rsi, arg2 -> rdx, arg3 -> r10 arg4 -> r8
 section .data
-    success: db  "Socket has been successfully initialized",0xa, 0
-    failure: db  "Failed to initialize a socket", 0xa, 0x0
+    sock_success: db  "Socket has been successfully initialized",0xa, 0
+    sock_fail:    db  "Failed to initialize a socket", 0xa, 0x0
+    bind_success: db  "Successfully bound on localhost", 0xa, 0x0
+    bind_fail:    db  "Failed to bind on localhost", 0xa, 0x0
 
 section .bss
-    sockfd: resb 1
+    sockfd: resd 1
+
+%macro print 1
+    push rdi
+
+    mov  rdi, %1
+    call _print
+
+    pop rdi
+
+%endmacro
+
+%macro fail 1
+    print %1
+
+    jmp   _exit
+
+%endmacro
 
 section .text
     global _start
 
     _start:
+        push rbp
+        mov  rbp, rsp
         mov rdi, 0x2 ;AF_INET
         mov rsi, 0x1 ;SOCK_STREAM
         mov rdx, 0x0 ;socket() decides what protocol is most suitable
@@ -23,28 +44,49 @@ section .text
         push rdi
         mov  rax, 0x29
         syscall
-        call _checkstat
         pop rdi
         pop rsi
         pop rdx
-        ret
-
-    _checkstat:
         cmp  rax, -1
-        je   _fail
-        call _success
+        jne  _success_sock
+        fail sock_fail
         ret
 
-    _fail:
-        xor rdi, rdi
-        mov rdi, failure
-        call _printfailure
+    _bind:  
+        push DWORD 0x0
+        push DWORD 0x0
+        push DWORD 0x7F000001
+        push DWORD 0x50
+        push DWORD 0x2
+        mov  esi, esp
+        mov  edi,DWORD [sockfd]
+        mov  rdx, 0x10
+        mov  rax, 0x31
+        syscall
+        add  rsp, 20 ; freeing up the stack
+        cmp  rax, -1
+        jne  _success_bind
+        fail bind_fail
         ret
 
-    _success:
-        xor rdi, rdi
-        mov rdi, success
-        call _printsuccess
+    _success_sock:
+        print sock_success
+        call _bind
+        ret
+
+    _success_bind:
+        print bind_success
+        jmp   _exit
+        ret
+
+    _print:
+        push rdi
+        call _strlen
+        pop  rdi
+        mov rsi, rdi
+        mov rax, 0x1
+        mov rdi, 0x1
+        syscall
         ret
 
     _strlen:
@@ -58,30 +100,12 @@ section .text
         mov rdx, rcx
         ret
 
-    _printsuccess:
-        push rdi
-        call _strlen
-        pop  rdi
-        mov rsi, success
-        mov rax, 0x1
-        mov rdi, 0x1
-        syscall
-        ret
-
-    _printfailure:
-        push rdi
-        call _strlen
-        pop  rdi
-        mov rsi, failure
-        mov rax, 0x1
-        mov rdi, 0x1
-        syscall
-        ret
-
     _exit:
         xor rdi, rdi
         mov rax, 0x3c
         syscall
+        mov rsp, rbp ; Restore stack pointer
+        pop rbp ;Pop base pointer
         ret
 
 
