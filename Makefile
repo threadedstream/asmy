@@ -2,7 +2,7 @@ FLAGS=-S -masm=intel
 NASM_X64_FLAGS=-f elf64 
 NASM_X32_FLAGS=-f elf32
 LINKER_X32_FLAGS=-m elf_i386 
-LINKER_X64_FLAGS=-dynamic-linker /lib64/ld-linux-x86-64.so.2 
+LINKER_X64_FLAGS=-g -dynamic-linker /lib64/ld-linux-x86-64.so.2 
 all:
 	gcc main.c -o main
 
