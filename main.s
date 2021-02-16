@@ -27,17 +27,28 @@ panic:
 	.size	panic, .-panic
 	.section	.rodata
 .LC0:
-	.string	"Could not initialize socket"
-	.align 8
+	.string	"127.0.0.1"
 .LC1:
-	.string	"Successfully initialized socket\n"
-.LC2:
-	.string	"Binding on localhost...\n"
-.LC3:
-	.string	"Could not bind"
+	.string	"Could not initialize socket\n"
 	.align 8
+.LC2:
+	.string	"Successfully initialized socket\n"
+.LC3:
+	.string	"Binding on localhost...\n"
 .LC4:
+	.string	"Could not bind\n"
+	.align 8
+.LC5:
 	.string	"Successfully bound on localhost\n"
+	.align 8
+.LC6:
+	.string	"Waiting for someone to connect...\n"
+.LC7:
+	.string	"Failed to listen\n"
+.LC8:
+	.string	"Failed to accept the client\n"
+.LC9:
+	.string	"Just connected: %u:%u"
 	.text
 	.globl	main
 	.type	main, @function
@@ -50,61 +61,121 @@ main:
 	.cfi_offset 6, -16
 	mov	rbp, rsp
 	.cfi_def_cfa_register 6
-	sub	rsp, 64
-	mov	DWORD PTR -52[rbp], edi
-	mov	QWORD PTR -64[rbp], rsi
+	sub	rsp, 112
+	mov	DWORD PTR -100[rbp], edi
+	mov	QWORD PTR -112[rbp], rsi
 	mov	rax, QWORD PTR fs:40
 	mov	QWORD PTR -8[rbp], rax
 	xor	eax, eax
-	mov	DWORD PTR -36[rbp], 0
-	mov	QWORD PTR -32[rbp], 0
-	mov	QWORD PTR -24[rbp], 0
-	mov	WORD PTR -32[rbp], 2
+	mov	DWORD PTR -76[rbp], 0
+	mov	DWORD PTR -72[rbp], 5
+	mov	DWORD PTR -84[rbp], 0
+	mov	DWORD PTR -68[rbp], 1
+	mov	QWORD PTR -64[rbp], 0
+	mov	QWORD PTR -56[rbp], 0
+	mov	QWORD PTR -48[rbp], 0
+	mov	QWORD PTR -40[rbp], 0
+	mov	DWORD PTR -84[rbp], 16
+	mov	WORD PTR -64[rbp], 2
+	lea	rdi, .LC0[rip]
+	call	inet_addr@PLT
+	mov	DWORD PTR -60[rbp], eax
+	mov	edi, 8000
+	call	htons@PLT
+	mov	WORD PTR -62[rbp], ax
 	mov	edx, 0
 	mov	esi, 1
 	mov	edi, 2
 	call	socket@PLT
-	mov	DWORD PTR -36[rbp], eax
-	cmp	DWORD PTR -36[rbp], -1
+	mov	DWORD PTR -76[rbp], eax
+	cmp	DWORD PTR -76[rbp], -1
 	jne	.L3
-	lea	rdi, .LC0[rip]
+	lea	rdi, .LC1[rip]
 	call	panic
 .L3:
 	mov	rax, QWORD PTR stdout[rip]
 	mov	rcx, rax
 	mov	edx, 32
 	mov	esi, 1
-	lea	rdi, .LC1[rip]
+	lea	rdi, .LC2[rip]
 	call	fwrite@PLT
 	mov	rax, QWORD PTR stdout[rip]
 	mov	rcx, rax
 	mov	edx, 24
 	mov	esi, 1
-	lea	rdi, .LC2[rip]
+	lea	rdi, .LC3[rip]
 	call	fwrite@PLT
-	lea	rcx, -32[rbp]
-	mov	eax, DWORD PTR -36[rbp]
+	lea	rcx, -64[rbp]
+	mov	eax, DWORD PTR -76[rbp]
 	mov	edx, 16
 	mov	rsi, rcx
 	mov	edi, eax
 	call	bind@PLT
 	cmp	eax, -1
 	jne	.L4
-	lea	rdi, .LC3[rip]
+	lea	rdi, .LC4[rip]
 	call	panic
 .L4:
 	mov	rax, QWORD PTR stdout[rip]
 	mov	rcx, rax
 	mov	edx, 32
 	mov	esi, 1
-	lea	rdi, .LC4[rip]
+	lea	rdi, .LC5[rip]
 	call	fwrite@PLT
+	mov	rax, QWORD PTR stdout[rip]
+	mov	rcx, rax
+	mov	edx, 34
+	mov	esi, 1
+	lea	rdi, .LC6[rip]
+	call	fwrite@PLT
+	mov	edx, DWORD PTR -72[rbp]
+	mov	eax, DWORD PTR -76[rbp]
+	mov	esi, edx
+	mov	edi, eax
+	call	listen@PLT
+	cmp	eax, -1
+	jne	.L5
+	lea	rdi, .LC7[rip]
+	call	panic
+.L5:
+	mov	DWORD PTR -80[rbp], 0
+	jmp	.L6
+.L8:
+	lea	rdx, -84[rbp]
+	lea	rcx, -48[rbp]
+	mov	eax, DWORD PTR -76[rbp]
+	mov	rsi, rcx
+	mov	edi, eax
+	call	accept@PLT
+	mov	edx, DWORD PTR -80[rbp]
+	movsx	rdx, edx
+	mov	DWORD PTR -32[rbp+rdx*4], eax
+	mov	eax, DWORD PTR -80[rbp]
+	cdqe
+	mov	eax, DWORD PTR -32[rbp+rax*4]
+	cmp	eax, -1
+	jne	.L7
+	lea	rdi, .LC8[rip]
+	call	panic
+.L7:
+	add	DWORD PTR -80[rbp], 1
+	movzx	eax, WORD PTR -46[rbp]
+	movzx	ecx, ax
+	mov	edx, DWORD PTR -44[rbp]
+	mov	rax, QWORD PTR stdout[rip]
+	lea	rsi, .LC9[rip]
+	mov	rdi, rax
 	mov	eax, 0
-	mov	rdx, QWORD PTR -8[rbp]
-	xor	rdx, QWORD PTR fs:40
-	je	.L6
-	call	__stack_chk_fail@PLT
+	call	fprintf@PLT
 .L6:
+	cmp	DWORD PTR -68[rbp], 0
+	jne	.L8
+	mov	eax, 0
+	mov	rsi, QWORD PTR -8[rbp]
+	xor	rsi, QWORD PTR fs:40
+	je	.L10
+	call	__stack_chk_fail@PLT
+.L10:
 	leave
 	.cfi_def_cfa 7, 8
 	ret

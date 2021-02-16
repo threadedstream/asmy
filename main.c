@@ -18,7 +18,7 @@ int main(int argc,const char* argv[]){
 	client_size = sizeof(client);
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-	addr.sin_port = 8000;
+	addr.sin_port = htons(8000);
 
 
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
@@ -36,13 +36,13 @@ int main(int argc,const char* argv[]){
 		panic("Failed to listen\n");
 
 	int i = 0;
-	while (running){
-		if ((clients[i] = accept(fd, (struct sockaddr *) &client, &client_size)) == -1)
-			panic("Failed to accept the client connection");
-
-		fprintf(stdout, "Just connected: %u", client.sin_addr.s_addr);
-		i++;
-	}	
 	
+	while (running){
+		if ((clients[i] = accept(fd, (struct sockaddr* )&client, &client_size)) == -1)
+			panic("Failed to accept the client\n");
+
+		i++;
+		fprintf(stdout, "Just connected: %u:%u", client.sin_addr.s_addr, client.sin_port);
+	}	
 	return 0;
 }	
