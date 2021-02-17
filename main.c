@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <stdarg.h>
 
 void panic(const char* message){
 	fprintf(stderr, message);
@@ -12,23 +13,27 @@ void panic(const char* message){
 }
 // 2 + 2 + 4 = 8
 int main(int argc,const char* argv[]){
-	int fd = 0, backlog = 5, client_size = 0;
+	int fd = 0, backlog = 5, client_size = 0, code = 0;
 	const char* message = "<h1>Hello, Assembly Hero</h1>";
 	char* response;
-	sprintf(response,"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n;Connection: Keep-Alive\r\n\r\n %s", message);
+	sprintf(response,"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Keep-Alive\r\n\r\n %s", message);
 	int clients[5];
 	unsigned running = 1;
 	struct sockaddr_in addr = {}, client = {};
 	client_size = sizeof(client);
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	addr.sin_addr.s_addr = inet_addr("0.0.0.0");
 	addr.sin_port = htons(8000);
-
-	printf("%ld\n", sizeof(addr));
 
 	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 		panic("Could not initialize socket\n");
 	
+	if ((code = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &(int){0x1}, 0x4)) == -1){
+		printf("%d\n", code);
+		panic("setsockopt failed\n");
+	}
+
+
 	fprintf(stdout, "Successfully initialized socket\n");
 	fprintf(stdout, "Binding on localhost...\n");
 
@@ -47,7 +52,7 @@ int main(int argc,const char* argv[]){
 			panic("Failed to accept the client\n");
 
 		fprintf(stdout, "Just connected: %u:%u", client.sin_addr.s_addr, client.sin_port);
-		if (send(clients[i], response, strlen(response), 0x0) == -1)
+		if (sendto(clients[i], response, strlen(response), 0x0, (const struct sockaddr*)&client, sizeof(client)) == -1)
 			panic("Failed to send data to the client");
 		i++;
 	}	

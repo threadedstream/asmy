@@ -1,9 +1,10 @@
 
-; arg0 -> rdi, arg1 -> rsi, arg2 -> rdx, arg3 -> r10 arg4 -> r8
+; arg0 -> rdi, arg1 -> rsi, arg2 -> rdx, arg3 -> r10, arg4 -> r8, arg5 -> r9
 section .data
     sock_info: db "Sockfd: %d", 0xa, 0x0
     client_info: db "Clientfd: %d", 0xa, 0x0
     sock_success: db  "Socket has been successfully initialized",0xa, 0
+    setsockopt_fail: db "setsockopt failed", 0xa, 0x0
     sock_fail:    db  "Failed to initialize a socket", 0xa, 0x0
     bind_success: db  "Successfully bound on localhost", 0xa, 0x0
     bind_code: db  "Bind code: %d", 0xa, 0x0
@@ -13,8 +14,9 @@ section .data
     exit_message: db "Exiting from an application",0xa,0x0
     accept_success: db "Client connected",0xa, 0x0
     accept_fail: db "Failed to accept a client", 0xa, 0x0
-    response: db "HTTP/1.1 200 OK", 0xd, 0xa, "Content-Type: text/html",0xd, 0xa,"Connection: Keep-Alive", 0xd, 0xa,0xd,0xa, "<h1>Hello, Assembly Hero</h1>",0x0
+    response: db "HTTP/1.1 200 OK",0xd,0xa,"Content-Type: text/html;",0xd,0xa,"Connection: Keep-Alive", 0xd,0xa,0xd,0xa,"<h1>Hello, Assembly Hero</h1>", 0x0
     fail_send: db "Failed to send message to the client", 0xa,0x0
+    fail_close_socket: db "Failed to close accept socket", 0xa, 0x0
     backlog: dw 0x5
     client_size: dd 0x10
 
@@ -69,11 +71,26 @@ section .text
         fail sock_fail
         ret
 
+    _setsockopt:
+        push DWORD 0x1
+        lea  r10, [rsp]
+        mov  edi, DWORD [sockfd]
+        mov  esi, DWORD 0x1
+        mov  edx, DWORD 0x2
+        mov  r8d, DWORD 0x4
+        mov  rax, 0x36
+        syscall
+        add rsp, 4 ;freeing up stack
+        cmp rax, 0
+        je  _bind
+        fail setsockopt_fail
+        ret
+
     _bind:  
-        push DWORD 0x0
-        push DWORD 0x0100007F
-        push WORD  0x401F
-        push WORD  0x2
+        push DWORD 0x0 
+        push DWORD 0x0 ;localhost 
+        push WORD  0x401F ;port 8000
+        push WORD  0x2 ;AF_INET
         mov rsi, rsp
         mov rax, 0x31
         mov rdx, 0x10
@@ -92,7 +109,7 @@ section .text
     _success_sock:
         mov   [sockfd], rax
         print sock_success
-        call _bind
+        call  _setsockopt
         ret
 
     _success_bind:
@@ -108,35 +125,44 @@ section .text
 
     _success_listen:
         print listen_success
-        mov   r8, [backlog] 
+        mov   r15d, DWORD [backlog] 
         jmp  _accept_loop
         ret        
 
     _accept_loop:
         mov   rax, 0x2b ;accept's syscall number
-        mov   rdi, QWORD [sockfd]; socket file descriptor
+        mov   rdi, QWORD [sockfd] ;file descriptor of the socket
         mov   rsi, client_addr ;address of client_address structure
         lea   rdx, [client_size] ;size of client_address structure
-        syscall 
+        syscall
         cmp   rax, 0
         jge   _process_client  
         fail  accept_fail
         ret
 
     _process_client:
-        mov   [clientfd], rax ; *clientfd = rax
+        mov   [clientfd], rax ;*clientfd = rax
         mov   rax, 0x2c
-        mov   rdi, QWORD [sockfd]
-        mov   rsi, response
+        mov   rsi, response ;response itself
         mov   rdi, response
         push  rdi
         call  _strlen
         pop   rdi
+        mov   r10d, DWORD 0x0 ;flags
+        mov   edi, DWORD [clientfd] ;clientfd
+        mov   r8,  client_addr
+        mov   r9d,  DWORD 0x10
         syscall
         cmp   rax, 0
-        jge   _accept_loop
+        jge   _check_counter
         fail  fail_send
         ret
+
+    _check_counter:
+        dec r15
+        cmp r15, 0
+        jge _accept_loop
+        jmp _exit
 
     _print:
         push rdi
@@ -159,10 +185,16 @@ section .text
         mov rdx, rcx
         ret
 
+    _close_socket:
+        mov rdi, [sockfd]
+        mov rax, 0x03
+        syscall
+        ret
+
     _exit:
         print exit_message
+        call  _close_socket
         xor rdi, rdi
         mov rax, 0x3c
         syscall
         ret
-
