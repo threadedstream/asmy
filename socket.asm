@@ -1,29 +1,44 @@
 
 ; arg0 -> rdi, arg1 -> rsi, arg2 -> rdx, arg3 -> r10, arg4 -> r8, arg5 -> r9
 section .data
-    sock_info: db "Sockfd: %d", 0xa, 0x0
-    client_info: db "Clientfd: %d", 0xa, 0x0
-    sock_success: db  "Socket has been successfully initialized",0xa, 0
-    setsockopt_fail: db "setsockopt failed", 0xa, 0x0
+    ;fails 
     sock_fail:    db  "Failed to initialize a socket", 0xa, 0x0
-    bind_success: db  "Successfully bound on localhost", 0xa, 0x0
-    bind_code: db  "Bind code: %d", 0xa, 0x0
     bind_fail:    db  "Failed to bind on localhost", 0xa, 0x0
-    listen_success: db "Waiting for someone to connect...", 0xa, 0x0
-    listen_fail: db "Failed to listen", 0xa, 0x0
-    exit_message: db "Exiting from an application",0xa,0x0
-    accept_success: db "Client connected",0xa, 0x0
     accept_fail: db "Failed to accept a client", 0xa, 0x0
-    response: db "HTTP/1.1 200 OK",0xd,0xa,"Content-Type: text/html;",0xd,0xa,"Connection: Keep-Alive", 0xd,0xa,0xd,0xa,"<h1>Hello, Assembly Hero</h1>", 0x0
+    listen_fail: db "Failed to listen", 0xa, 0x0
     fail_send: db "Failed to send message to the client", 0xa,0x0
     fail_close_socket: db "Failed to close accept socket", 0xa, 0x0
+    setsockopt_fail: db "setsockopt failed", 0xa, 0x0
+    read_fail: db "Failed to read data from the client", 0xa, 0x0
+
+    ;success
+    sock_success: db  "Socket has been successfully initialized",0xa, 0
+    bind_success: db  "Successfully bound on localhost", 0xa, 0x0
+    accept_success: db "Client connected",0xa, 0x0
+    listen_success: db "Waiting for someone to connect...", 0xa, 0x0
+
+    ;misc
+    sock_info: db "Sockfd: %d", 0xa, 0x0
+    client_info: db "Clientfd: %d", 0xa, 0x0
+    bind_code: db  "Bind code: %d", 0xa, 0x0
+    exit_message: db "Exiting from an application",0xa,0x0
+    response: db "HTTP/1.1 200 OK",0xd, 0xa,"Content-Type: text/html",0xd, 0xa, "Connection: Close;",0xd,0xa,0xd,0xa,"<h1>Hello, Assembly Hero!</h1>", 0x0
+    request_msg: db "Request from client: %s\n"
+    start_write: db "write start!",0xa,0x0
+    end_write: db "write end!", 0xa, 0x0
+
+    ;numerical definitions
     backlog: dw 0x5
     client_size: dd 0x10
 
 section .bss
-    sockfd: resd 1
-    clientfd: resd 1
-    client_addr: resq 2
+    sockfd:         resd 1
+    clientfd:       resd 1
+    client_addr:    resq 2
+    request:        resb 512
+
+%define SIGINT 2
+
 
 %macro print 1
     push rdi
@@ -46,14 +61,16 @@ section .text
     extern printf
     extern accept
     extern bind
+    extern strlen
+    extern signal
 
     global _start
 
     _start:
         add  rsp, 12
-        mov rdi, 0x2 ;AF_INET
-        mov rsi, 0x1 ;SOCK_STREAM
-        mov rdx, 0x0 ;socket() decides what protocol is most suitable
+        mov  rdi, 0x2 ;AF_INET
+        mov  rsi, 0x1 ;SOCK_STREAM
+        mov  rdx, 0x0 ;socket() decides what protocol is most suitable
         call _initsock ;initializing socket
         call _exit
 
@@ -88,7 +105,7 @@ section .text
 
     _bind:  
         push DWORD 0x0 
-        push DWORD 0x0 ;localhost 
+        push DWORD 0x0 ;0.0.0.0 
         push WORD  0x401F ;port 8000
         push WORD  0x2 ;AF_INET
         mov rsi, rsp
@@ -100,10 +117,6 @@ section .text
         cmp  rax, 0
         je  _success_bind
         fail bind_fail
-        ;mov  rdi, bind_code
-        ;mov  rsi, rax
-        ;mov  rax, 0
-        ;call printf
         ret
 
     _success_sock:
@@ -136,33 +149,54 @@ section .text
         lea   rdx, [client_size] ;size of client_address structure
         syscall
         cmp   rax, 0
-        jge   _process_client  
+        jge   _read_request  
         fail  accept_fail
         ret
 
-    _process_client:
+
+    _read_request:
         mov   [clientfd], rax ;*clientfd = rax
-        mov   rax, 0x2c
-        mov   rsi, response ;response itself
-        mov   rdi, response
-        push  rdi
-        call  _strlen
-        pop   rdi
-        mov   r10d, DWORD 0x0 ;flags
-        mov   edi, DWORD [clientfd] ;clientfd
-        mov   r8,  client_addr
-        mov   r9d,  DWORD 0x10
+        mov   rax, 0x00 ;read syscall
+        mov   rdi, [clientfd]
+        mov   rsi, request
+        mov   rdx, 0x100
+        shl   rdx, 1
         syscall
-        cmp   rax, 0
-        jge   _check_counter
-        fail  fail_send
+        cmp   rax, -1
+        jg    _print_request  
+        fail  read_fail
         ret
 
-    _check_counter:
-        dec r15
-        cmp r15, 0
-        jge _accept_loop
-        jmp _exit
+    _print_request:
+        mov  rdi, request_msg
+        mov  rsi, request
+        mov  rax, 0
+        call printf
+        xor  rax, rax
+        xor  rdi, rdi
+        xor  rsi, rsi
+        jmp  _write_data
+        ret
+
+    _write_data:
+        print start_write
+        xor   rdi, rdi
+        mov   rdi, response
+        call  strlen
+        xor   rdi, rdi
+        mov   rdx, rax
+        mov   rax, 0x2c
+        mov   rdi, [clientfd]
+        mov   rsi, response
+        mov   r10d, DWORD 0x4
+        mov   r8,  client_addr
+        mov   r9d, 0x10
+        syscall
+        print end_write
+        cmp   rax, 0
+        jge   _accept_loop
+        fail  fail_send
+        ret
 
     _print:
         push rdi
