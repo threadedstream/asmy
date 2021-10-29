@@ -9,6 +9,13 @@ void print_array10(const char* array_fmt, int32_t array[10], int32_t ARRAY_SIZE)
     // array -> 12(%ebp)
     // ARRAY_SIZE -> 16(%ebp)
 
+    // epilog
+    // movl 8(%ebp), %edx
+    // movl 12(%ebp), %ebx
+    // movl 16(%ebp), %ecx
+    // movl $0, %esi
+
+
     for (int32_t ecx = 0; ecx < ARRAY_SIZE; ecx++) {
         // movl 8(%ebp), %edx
         // xorl %eax, %eax
@@ -19,26 +26,57 @@ void print_array10(const char* array_fmt, int32_t array[10], int32_t ARRAY_SIZE)
         // call printf
         printf(array_fmt, array[ecx]);
     }
+
+    // pushl $newline
+    // call printf
+    // addl $4, %esp
     printf("\n");
 }
 
 void sort_routine20(int32_t array[10], int32_t ARRAY_SIZE) {
+    // array -> 8(%ebp)
+    // ARRAY_SIZE -> 12(%ebp)
     int32_t min_idx = 0;
     int32_t esi = 0;
     int32_t edi = 0;
 
     // outer_loop
+    // decl %ecx
+    // # Prepare for outer loop here
+    // xorl %esi, %esi
     for (int32_t ecx = ARRAY_SIZE - 1; ecx > 0; ecx--) {
+        // movl %esi, -4(%ebp)
+        // movl %esi, %edi
+        // incl %edi
         min_idx = esi;
         edi = esi + 1;
 
-        // inner loop
+        // inner_loop
+        // cmpl $ARRAY_SIZE, %edi
+        // jge swap_vars
         while (edi < ARRAY_SIZE) {
+            //  xorb %al, %al
+            //  movl -4(%ebp), %edx
+            //  movb (%ebx, %edx, 1), %al
+            //  cmpb %al, (%ebx, %edi, 1)
+            //  jge check_next
             if (array[edi] < array[min_idx]) {
                 min_idx = edi;
             }
+            // check_next:
+            // incl %edi
+            // jmp inner_loop
             edi++;
         }
+
+        // swap_vars:
+        // movl -4(%ebp), %edi
+        // movb (%ebx, %edi, 1), %dl
+        // movb (%ebx, %esi, 1), %al
+        // movb %dl, (%ebx, %esi, 1)
+        // movb %al, (%ebx, %edi, 1)
+        // incl %esi
+        // loop outer_loop
         int8_t dl = array[min_idx];
         int8_t al = array[esi];
         array[esi] = dl;
