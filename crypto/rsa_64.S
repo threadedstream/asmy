@@ -1,44 +1,79 @@
 .section .data
-a:
-    .long 10
-b:
-    .long 3
+message:
+    .long 24
 
-fmt:
-    .asciz "The number is: %d\n"
+prime_table:
+    .long 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 73, 79, 83, 89, 97, 101, 103, 107, 109
+
+power_mod_fmt:
+    .asciz "%d raised to the power %d mod %d is equal to %d\n"
+
+base:
+    .long 40
+
+exp:
+    .long 12
+
+mod:
+    .long 30
 
 .section .text
     .global _start
 
     _start:
-        mov $a, %rcx
-        mov $b, %r8
-        xor %rdi, %rdi
-        xor %rsi, %rsi
-        movl (%rcx), %edi
-        movl (%r8), %esi
-        call compute_gcd
-        mov %rax, %rsi
-        mov $fmt, %rdi
+        mov $base, %rdi
+        movl (%rdi), %edi
+        mov $exp, %rsi
+        movl (%rsi), %esi
+        mov $mod, %rdx
+        movl (%rdx), %edx
+        call power_mod
+        mov $power_mod_fmt, %rdi
+        mov $base, %rsi
+        movl (%rsi), %esi
+        mov $exp, %rdx
+        movl (%rdx), %edx
+        mov $mod, %r10
+        movl (%r10), %r10d
+        mov %rax, %r8
         xor %rax, %rax
         call printf
         jmp _exit
 
-    compute_gcd:
+    power_mod:
+        # accepts base, exp, and mod (%edi, %esi, %edx)
+        pushq %rbx
+        movl $1, %r8d
+        # store mod into ebx, as edx will be used as a result of mod operation
+        mov %edx, %ebx
+        xor %rax, %rax
+
+    power_mod_loop:
+        cmpl $0, %esi
+        jz power_mod_ret
+        test $1, %esi
+        jz half_exp_assign_base
+        movl %r8d, %eax
+        imul %edi
+        idivl %ebx
+        movl %edx, %r8d
+
+    half_exp_assign_base:
+        shr $1, %esi
+        imul %edi, %edi
         movl %edi, %eax
+        # converts eax to eax:edx
         cltd
-        idivl %esi
-        test %edx, %edx
-        jnz next_gcd_call
-        movl %esi, %eax
+        idivl %ebx
+        mov %edx, %edi
+        jmp power_mod_loop
+
+
+    power_mod_ret:
+        popq %rbx
+        mov %r8, %rax
         ret
 
-    next_gcd_call:
-        movl %edx, %esi
-        mov %esi, %edi
-        jmp compute_gcd
-
     _exit:
-        mov $60, %rax
         xor %rdi, %rdi
-        syscall
+        call exit
