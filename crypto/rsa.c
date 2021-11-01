@@ -25,12 +25,17 @@ void extended_eucl_iter(int32_t a, int32_t b, int32_t *rout, int32_t *vout, int3
 	int32_t r = a, u = 1, v = 0;
 	int32_t rp = b, up = 0, vp = 1;
 
+    int32_t upold = 0, vpold = 0, rpold = 0;
+
 	while (rp != 0) {
-		const int32_t upold = up;
-		const int32_t vpold = vp;
-		const int32_t rpold = rp;
+		upold = up;
+		vpold = vp;
+		rpold = rp;
+		// 1
 		up = u - (r / rp) * up;
+		// -5
 		vp = v - (r / rp) * vp;
+		// 5
 		rp = r - (r / rp) * rp;
 		r = rpold;
 		u = upold;
