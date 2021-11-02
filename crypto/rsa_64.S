@@ -5,7 +5,7 @@
 
 .section .data
 message:
-    .long 24
+    .long 10120
 
 prime_table:
     .long 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 73, 79, 83, 89, 97, 101, 103, 107, 109
@@ -13,8 +13,14 @@ prime_table:
 prime_table_end:
     .equ prime_table_size, prime_table_end - prime_table
 
-fmt:
-    .asciz "vout: %d, uout: %d\n"
+plain_message_before_encr_fmt:
+    .asciz "The plain message before encryption: %d\n"
+
+encryped_message_fmt:
+    .asciz "The encrypted message: %d\n"
+
+decrypted_message_fmt:
+    .asciz "The decrypted message: %d\n"
 
 .section .text
     .global _start
@@ -26,22 +32,76 @@ fmt:
         xor %rdi, %rdi
         xor %rsi, %rsi
 
-        # int32_t p = 73, q = 79;
-        movl $19, %edi
-        movl $5616, %esi
+        # int32_t p = 107, q = 109;
+        movl $107, %edi
+        movl $109, %esi
 
         # int32_t e = 0, n = 0, d = 0;
         movl $0, -4(%rbp)
         movl $0, -8(%rbp)
         movl $0, -12(%rbp)
 
+        # e
         lea -4(%rbp), %rdx
+        # n
         lea -8(%rbp), %rcx
+        # d
         lea -12(%rbp), %r8
 
-        call extended_eucl_iter
+        call generate_keys
+
+
+
+        # printing plain message prior to encryption
+        mov $message, %rsi
+        movl (%rsi), %esi
+
+        mov $plain_message_before_encr_fmt, %rdi
+        xor %rax, %rax
+        call printf
+
+        # const int32_t encrypted = cipher_message(message, e, n)
+        mov $message, %rdi
+        movl (%rdi), %edi
+
+        movl -4(%rbp), %esi
+        movl -8(%rbp), %edx
+        call cipher_message
+
+        # store result in a register for further use
+        mov %eax, %ebx
+
+
+        # printing an encrypted message
+        mov %eax, %esi
+        mov $encryped_message_fmt, %rdi
+        xor %eax, %eax
+        call printf
+
+        movl %ebx, %edi
+        movl -12(%rbp), %esi
+        movl -8(%rbp), %edx
+        call decipher_message
+
+        # print a decrypted message
+        movl %eax, %esi
+        mov $decrypted_message_fmt, %rdi
+        xor %eax, %eax
+        call printf
 
         jmp _exit
+
+    # int32_t cipher_message(int32_t message, int32_t e, int32_t n)
+    # message in %edi, e in %esi, n in %edx
+    cipher_message:
+        call power_mod
+        ret
+
+    # int32_t decipher_message(int32_t encrypted, int32_t d, int32_t n)
+    # encrypted in %edi, d in %esi, n in %edx
+    decipher_message:
+        call power_mod
+        ret
 
     # int32_t power_mod(int32_t base, int32_t exp, int32_t mod)
     power_mod:
@@ -167,10 +227,10 @@ fmt:
 
         jmp extended_eucl_loop
 
-    extended_eucl_assign_and_ret:
-        # *rout = r
-        movl -4(%rbp), %eax
-        movl %eax, (%r10)
+        extended_eucl_assign_and_ret:
+            # *rout = r
+            movl -4(%rbp), %eax
+            movl %eax, (%r10)
 
         # *uout = u
         movl -8(%rbp), %eax
@@ -229,12 +289,18 @@ fmt:
         pushq %rbx
         pushq %r10
         pushq %rbp
+
         mov %rsp, %rbp
+        # make some room for local variables
+        sub $24, %rsp
 
         xor %rax, %rax
 
         movl %edi, %ebx
         movl %esi, %r10d
+
+        # save to-be-polluted %rdx register
+        pushq %rdx
 
         # const int32_t np = p * q
         movl %ebx, %eax
@@ -247,6 +313,9 @@ fmt:
         movl %r10d, %eax
         mull %ebx
         mov %eax, -8(%rbp)
+
+        # make %rdx clean again
+        popq %rdx
 
         # int32_t ep = choose_neatly_fitting_prime(phi_n);
         movl -8(%rbp), %edi
@@ -271,17 +340,16 @@ fmt:
         movl -24(%rbp), %edi
         movl -8(%rbp), %esi
         lea -20(%rbp), %rdx
-        lea -12(%rbp), %rcx
-        lea -16(%rbp), %r8
+        lea -16(%rbp), %rcx
+        lea -12(%rbp), %r8
         call extended_eucl_iter
 
         # dp = dp % phi_n;
-        mov -16(%rbp), %rax
-        movl (%rax), %eax
+        movl -16(%rbp), %eax
         cltd
         idivl -8(%rbp)
         cmpl $0, %edx
-        jb generate_keys_grow_dp
+        jl generate_keys_grow_dp
         movl %edx, -16(%rbp)
         jmp generate_keys_success
 
@@ -312,9 +380,10 @@ fmt:
         movl %r9d, (%r8)
 
         # restore callee-saved registers
-        popq %rbx
-        popq %r10
+        add $24, %rsp
         popq %rbp
+        popq %r10
+        popq %rbx
 
         # return
         ret
@@ -325,16 +394,13 @@ fmt:
         popq %rcx
         popq %rdx
 
-        # assign value of -1 (0xffffffff) to them
-        movl $-1, (%rdx)
-        movl $-1, (%rcx)
-        movl $-1, (%r8)
-
         # restore callee-saved registers
-        popq %rbx
-        popq %r10
+        add $24, %rsp
         popq %rbp
+        popq %r10
+        popq %rbx
 
+        movl $-1, %eax
         # return
         ret
 
