@@ -31,11 +31,8 @@ void extended_eucl_iter(int32_t a, int32_t b, int32_t *rout, int32_t *vout, int3
 		upold = up;
 		vpold = vp;
 		rpold = rp;
-		// 1
 		up = u - (r / rp) * up;
-		// -5
 		vp = v - (r / rp) * vp;
-		// 5
 		rp = r - (r / rp) * rp;
 		r = rpold;
 		u = upold;
@@ -54,6 +51,8 @@ int32_t choose_neatly_fitting_prime(int32_t n) {
 			return prime_table[i];
 		}
 	}
+
+    return -1;
 }
 
 int32_t power_mod(int32_t base, int32_t exp, int32_t mod) {
@@ -83,6 +82,14 @@ void generate_keys(int32_t p, int32_t q, int32_t* e, int32_t *n, int32_t *d) {
 	// strictly less than the latter
 	int32_t ep = choose_neatly_fitting_prime(phi_n);
 
+    // wonky way to handle error
+    if (ep == -1) {
+        *e = -1;
+        *n = -1;
+        *d = -1;
+        return;
+    }
+
 	// find number d, such that e * d == 1 (mod phi(n)), can be calculated via extended euclidean algorithm
 	// 1 = d * e + v * phi(n) => Bezout's theorem
 	int32_t v = 0, dp = 0, r = 0;
@@ -93,7 +100,6 @@ void generate_keys(int32_t p, int32_t q, int32_t* e, int32_t *n, int32_t *d) {
 		dp += phi_n;
 	}
 
-	// -3557 * 19 +	8448 * 8
 	*e = ep;
 	*n = np;
 	*d = dp;
