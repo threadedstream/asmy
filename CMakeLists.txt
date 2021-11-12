@@ -3,3 +3,4 @@ project(asmy C)
 
 add_subdirectory(algos)
 add_subdirectory(crypto)
+add_subdirectory(audio)
