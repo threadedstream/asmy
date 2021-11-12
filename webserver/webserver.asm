@@ -1,7 +1,7 @@
 
 ; arg0 -> rdi, arg1 -> rsi, arg2 -> rdx, arg3 -> r10, arg4 -> r8, arg5 -> r9
 section .data
-    ;fails 
+    ; failures 
     sock_fail:    db  "Failed to initialize a socket", 0xa, 0x0
     bind_fail:    db  "Failed to bind on localhost", 0xa, 0x0
     accept_fail: db "Failed to accept a client", 0xa, 0x0
@@ -11,13 +11,13 @@ section .data
     setsockopt_fail: db "setsockopt failed", 0xa, 0x0
     read_fail: db "Failed to read data from the client", 0xa, 0x0
 
-    ;success
+    ; success
     sock_success: db  "Socket has been successfully initialized",0xa, 0
     bind_success: db  "Successfully bound on localhost", 0xa, 0x0
     accept_success: db "Client connected",0xa, 0x0
     listen_success: db "Waiting for someone to connect...", 0xa, 0x0
 
-    ;misc
+    ; misc
     sock_info: db "Sockfd: %d", 0xa, 0x0
     client_info: db "Clientfd: %d", 0xa, 0x0
     bind_code: db  "Bind code: %d", 0xa, 0x0

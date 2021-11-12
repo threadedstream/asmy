@@ -27,6 +27,7 @@ decrypted_message_fmt:
 
     _start:
         push %rbp
+        push %rbx
         mov %rsp, %rbp
         sub $12, %rsp
         xor %rdi, %rdi
@@ -49,7 +50,6 @@ decrypted_message_fmt:
         lea -12(%rbp), %r8
 
         call generate_keys
-
 
 
         # printing plain message prior to encryption
@@ -406,6 +406,7 @@ decrypted_message_fmt:
 
     _exit:
         add $12, %rsp
+        popq %rbx
         popq %rbp
         xor %rdi, %rdi
         call exit
