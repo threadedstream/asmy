@@ -1,3 +1,5 @@
+// slightly modified version of https://gist.github.com/ghedo/963382/815c98d1ba0eda1b486eb9d80d9a91a81d995283
+
 #include <alsa/asoundlib.h>
 
 
@@ -48,7 +50,7 @@ int main(int argc, const char* argv[]) {
 
     /* Write parameters */
     if (pcm = snd_pcm_hw_params(pcm_handle, params) < 0)
-        printf("ERROR: Can't set harware parameters. %s\n", snd_strerror(pcm));
+        printf("ERROR: Can't set hardware parameters. %s\n", snd_strerror(pcm));
 
     /* Resume information */
     printf("PCM name: '%s'\n", snd_pcm_name(pcm_handle));

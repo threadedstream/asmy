@@ -18,20 +18,33 @@ pcm_device:
 
 // TODO(threadedstream): make format strings look more informative
 failed_to_open_device_fmt:
-    .asciz "Can't open a PCM device"
+    .asciz "Can't open a PCM device\n"
+
+failed_to_set_access:
+    .asciz "Can't set interleaved mode\n"
+
+failed_to_set_format:
+    .asciz "Can't set format\n"
+
+failed_to_set_channels_number:
+    .asciz "Can't set channels number\n"
+
+failed_to_set_rate:
+    .asciz "Can't set rate\n"
+
+failed_to_set_hardware_params:
+    .asciz "Can't set hardware parameters\n"
 
 .section .bss
 pcm:
     .long 0
 
-tmp:
+frames:
     .long 0
 
-dir:
-    .long 0
-
+// void ** buff
 buff:
-    .byte 0
+    .zero 8
 
 buff_size:
     .long 0
@@ -39,19 +52,23 @@ buff_size:
 loops:
     .long 0
 
+// snd_pcm_t **pcm_handle
 pcm_handle:
     .zero 8
 
+// snd_pcm_hw_params_t **params
 params:
     .zero 8
-
 
 
 .section .text
     .globl _start
 
     _start:
-        push %r14
+        // for some reason, program segfaults when pushing %r14 onto the stack
+        pushq %rbp
+        pushq %r14
+        mov %rsp, %rbp
         // opening a device
         lea pcm_handle(%rip), %rdi
         lea pcm_device(%rip), %rsi
@@ -66,7 +83,7 @@ params:
         // save return value in pcm
         mov %eax, pcm(%rip)
         mov $failed_to_open_device_fmt, %rax
-        cmovl %rax, %rdi
+        cmovs %rax, %rdi
         js report_failure_exit
 
         // getting the size of snd_pcm_hw_params struct
@@ -110,7 +127,7 @@ params:
         //     call	memset@PLT                   -> memset(0x7fffffffdd10, 0, 608)
 
         sub %rax, %rsp
-        orq $0, -8(%rsp, %rax)
+        orq $0, -8(%rsp, %rax) // noop;
 
         leaq 15(%rsp), %r14 // rax = rsp + 15
         andq $-16, %r14
@@ -124,6 +141,102 @@ params:
         mov pcm_handle(%rip), %rdi
         mov %r14, %rsi
         call snd_pcm_hw_params_any
+
+        // snd_pcm_hw_params_set_access(pcm_handle, params, SND_PCM_ACCESS_RW_INTERLEAVED)
+        mov pcm_handle(%rip), %rdi
+        mov %r14, %rsi // %r14 acts as params
+        mov $0x3, %edx // SND_PCM_ACCESS_RW_INTERLEAVED
+        call snd_pcm_hw_params_set_access
+
+        // if (eax < 0)
+        testl %eax, %eax
+        mov $failed_to_set_access, %rax
+        cmovs %rax, %rdi
+        js report_failure_exit
+
+        // snd_pcm_hw_params_set_format(pcm_handle, params, SND_PCM_FORMAT_S16_LE)
+        mov pcm_handle(%rip), %rdi
+        mov %r14, %rsi
+        mov $0x2, %edx // SND_PCM_FORMAT_S16_LE
+        call snd_pcm_hw_params_set_format
+
+        // if (eax < 0)
+        testl %eax, %eax
+        mov $failed_to_set_format, %rax
+        cmovs %rax, %rdi
+        js report_failure_exit
+
+        // snd_pcm_hw_params_set_channels(pcm_handle, params, channels)
+        mov pcm_handle(%rip), %rdi
+        mov %r14, %rsi
+        mov channels(%rip), %edx
+        call snd_pcm_hw_params_set_channels
+
+        // if (eax < 0)
+        testl %eax, %eax
+        mov $failed_to_set_channels_number, %rax
+        cmovs %rax, %rdi
+        js report_failure_exit
+
+        // snd_pcm_hw_params_set_rate_near(pcm_handle, params, &rate, 0)
+        mov pcm_handle(%rip), %rdi
+        mov %r14, %rsi
+        mov $rate, %rdx
+        xor %ecx, %ecx
+        call snd_pcm_hw_params_set_rate_near
+
+        // if (eax < 0)
+        testl %eax, %eax
+        mov $failed_to_set_rate, %rax
+        cmovs %rax, %rdi
+        js report_failure_exit
+
+        // snd_pcm_hw_params(pcm_handle, params)
+        mov pcm_handle(%rip), %rdi
+        mov %r14, %rsi
+        call snd_pcm_hw_params
+
+        // if (eax < 0)
+        testl %eax, %eax
+        mov $failed_to_set_hardware_params, %rax
+        cmovs %rax, %rdi
+        js report_failure_exit
+
+        // TODO(threadedstream): too lazy to translate this whole thing to assembly
+        // printf("PCM name: '%s'\n", snd_pcm_name(pcm_handle));
+
+        // printf("PCM state: %s\n", snd_pcm_state_name(snd_pcm_state(pcm_handle)));
+
+        // snd_pcm_hw_params_get_channels(params, &tmp);
+        // printf("channels: %i ", tmp);
+
+        // if (tmp == 1)
+        //      printf("(mono)\n");
+        // else if (tmp == 2)
+        //      printf("(stereo)\n");
+
+        // snd_pcm_hw_params_get_rate(params, &tmp, 0);
+        // printf("rate: %d bps\n", tmp);
+
+        // printf("seconds: %d\n", seconds);
+
+        // snd_pcm_hw_params_get_period_size(params, &frames, 0);
+        mov %r14, %rdi
+        lea frames(%rip), %rsi
+        xor %edx, %edx
+        call snd_pcm_hw_params_get_period_size
+
+        // buff_size = frames * channels * 2;
+        mov frames(%rip), %rax
+        // collapsed to: buff_size = frames * 4 => frame << 2
+        shl $0x2 , %rax
+        mov %rax, buff_size(%rip)
+
+        // buff = (char *) malloc(buff_size);
+        mov %rax, %rdi
+        call malloc
+        mov %rax, buff(%rip)
+
         jmp _exit
 
 
@@ -143,7 +256,8 @@ params:
         jmp _exit
 
     _exit:
-        pop %r14
+        popq %r14
+        popq %rbp
         add $624, %rsp
         xor %rdi, %rdi
 
