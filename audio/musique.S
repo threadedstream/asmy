@@ -11,11 +11,10 @@ channels:
     .long 2
 
 seconds:
-    .long 3
+    .long 172
 
 pcm_device:
     .asciz "default"
-
 
 // TODO(threadedstream): make format strings look more informative
 failed_to_open_device_fmt:
@@ -45,8 +44,15 @@ early_end:
 failed_to_write_to_pcm_device:
     .asciz "Can't write to PCM device\n"
 
+starting_playback:
+    .asciz "Spinning playback up...\n"
+
 counter_fmt:
-    .asciz "Current rcx value is %d\n"
+    .asciz "Current counter value is %d\n"
+
+releasing_resources:
+    .asciz "Releasing resources...\n"
+
 
 .section .bss
 tmp:
@@ -83,8 +89,14 @@ params:
     _start:
         // for some reason, program segfaults when pushing %r14 onto the stack
         pushq %rbp
+        xorl  %ecx, %ecx
+        xorl  %edx, %edx
         mov %rsp, %rbp
+        pushq %r15
         pushq %r14
+	    pushq %r13
+	    pushq %r12
+	    pushq %rbx
         // opening a device
         lea pcm_handle(%rip), %rdi
         lea pcm_device(%rip), %rsi
@@ -283,17 +295,18 @@ params:
     loop:
         test %rbx, %rbx
         jz release_resources
+
         // read(0, buff, buff_size)
-        //xor %rdi, %rdi // STDIN
-        //mov buff(%rip), %rsi
-        //mov buff_size(%rip), %rdx
-        //call read
+        xor %rdi, %rdi // STDIN
+        mov buff(%rip), %rsi
+        mov buff_size(%rip), %rdx
+        call read
 
         // eax == 0?
-        //testl %eax, %eax
-        //mov $early_end, %rax
-        //cmovz %rax, %rdi
-        //jz report_failure_exit
+        testl %eax, %eax
+        mov $early_end, %rax
+        cmovz %rax, %rdi
+        jz report_failure_exit
 
         // snd_pcm_writei(pcm_handle, buff, frames)
         mov pcm_handle(%rip), %rdi
@@ -312,14 +325,13 @@ params:
         js report_failure_exit
 
     cmp_and_loop:
-        mov $counter_fmt, %rdi
-        mov %ebx, %esi
-        xor %rax, %rax
-        call printf
+        decl %ebx
         jmp loop
 
     prepare_playback:
         // snd_pcm_prepare(pcm_handle)
+        mov $starting_playback, %rdi
+        call puts
         mov pcm_handle(%rip), %rdi
         call snd_pcm_prepare
         jmp cmp_and_loop
@@ -327,6 +339,8 @@ params:
 
     release_resources:
         // snd_pcm_drain(pcm_handle)
+        mov $releasing_resources, %rdi
+        call puts
         mov pcm_handle(%rip), %rdi
         call snd_pcm_drain
 
@@ -353,8 +367,11 @@ params:
         jmp _exit
 
     _exit:
-        popq %rbx
+	    popq %rbx
+	    popq %r12
+	    popq %r13
         popq %r14
+        popq %r15
         popq %rbp
         add $624, %rsp
         xor %rdi, %rdi
