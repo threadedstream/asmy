@@ -3,6 +3,7 @@
 
 // TODO(threadedstream): make parameters below dynamic, i.e let user decide what those values
 // should be
+
 rate:
     .long 44100
 
@@ -35,7 +36,22 @@ failed_to_set_rate:
 failed_to_set_hardware_params:
     .asciz "Can't set hardware parameters\n"
 
+failed_to_allocate_memory:
+    .asciz "Can't allocate memory for a buffer\n"
+
+early_end:
+    .asciz "Early end of a file\n"
+
+failed_to_write_to_pcm_device:
+    .asciz "Can't write to PCM device\n"
+
+counter_fmt:
+    .asciz "Current rcx value is %d\n"
+
 .section .bss
+tmp:
+    .long 0
+
 pcm:
     .long 0
 
@@ -67,8 +83,8 @@ params:
     _start:
         // for some reason, program segfaults when pushing %r14 onto the stack
         pushq %rbp
-        pushq %r14
         mov %rsp, %rbp
+        pushq %r14
         // opening a device
         lea pcm_handle(%rip), %rdi
         lea pcm_device(%rip), %rsi
@@ -235,12 +251,93 @@ params:
         // buff = (char *) malloc(buff_size);
         mov %rax, %rdi
         call malloc
+
+        // buff != nullptr?
+        test %rax, %rax
         mov %rax, buff(%rip)
+        mov $failed_to_allocate_memory, %rax
+        cmovs %rax, %rdi
+        js report_failure_exit
+
+        // snd_pcm_hw_params_get_period_time(params, &tmp, NULL);
+        mov %r14, %rdi
+        lea tmp(%rip), %rsi
+        xor %rdx, %rdx
+        call snd_pcm_hw_params_get_period_time
+
+        // for (loops = (seconds * 1000000) / tmp; loops > 0; loops--)
+        // seconds * 1000000
+        mov $1000000, %rax
+        lea seconds(%rip), %rdx
+        movl (%rdx), %edx
+        imull %edx
+
+        lea tmp(%rip), %rcx
+        movl (%rcx), %ecx
+        cltd
+        idivl %ecx
+
+        mov %rax, %rbx
+
+    // here it comes
+    loop:
+        test %rbx, %rbx
+        jz release_resources
+        // read(0, buff, buff_size)
+        //xor %rdi, %rdi // STDIN
+        //mov buff(%rip), %rsi
+        //mov buff_size(%rip), %rdx
+        //call read
+
+        // eax == 0?
+        //testl %eax, %eax
+        //mov $early_end, %rax
+        //cmovz %rax, %rdi
+        //jz report_failure_exit
+
+        // snd_pcm_writei(pcm_handle, buff, frames)
+        mov pcm_handle(%rip), %rdi
+        mov buff(%rip), %rsi
+        lea frames(%rip), %rdx
+        movl (%rdx), %edx
+        call snd_pcm_writei
+
+        // probably, will replace it by something more useful
+        // eax == -EPIPE?
+        cmp $-32, %eax
+        je prepare_playback
+        testl %eax, %eax
+        mov $failed_to_write_to_pcm_device, %rax
+        cmovs %rax, %rdi
+        js report_failure_exit
+
+    cmp_and_loop:
+        mov $counter_fmt, %rdi
+        mov %ebx, %esi
+        xor %rax, %rax
+        call printf
+        jmp loop
+
+    prepare_playback:
+        // snd_pcm_prepare(pcm_handle)
+        mov pcm_handle(%rip), %rdi
+        call snd_pcm_prepare
+        jmp cmp_and_loop
+
+
+    release_resources:
+        // snd_pcm_drain(pcm_handle)
+        mov pcm_handle(%rip), %rdi
+        call snd_pcm_drain
+
+        // snd_pcm_close(pcm_handle)
+        mov pcm_handle(%rip), %rdi
+        call snd_pcm_close
+
+        mov buff(%rip), %rdi
+        call free
 
         jmp _exit
-
-
-
 
 //       mov $params, %rdi
 //        lea (%rdi), %rdi
@@ -256,6 +353,7 @@ params:
         jmp _exit
 
     _exit:
+        popq %rbx
         popq %r14
         popq %rbp
         add $624, %rsp
