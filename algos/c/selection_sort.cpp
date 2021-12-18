@@ -2,7 +2,7 @@
 // I'm doing this solely for the purpose of learning assembly language
 
 #include <stdio.h> // puts, printf
-#include <stdint.h> // int8_t
+#include "algos.h"
 
 void print_array10(const char* array_fmt, int32_t array[10], int32_t ARRAY_SIZE) {
     // array_fmt -> 8(%ebp)
@@ -86,7 +86,7 @@ void sort_routine20(int32_t array[10], int32_t ARRAY_SIZE) {
 }
 
 
-int main(int argc, const char* argv[]) {
+void exec_selection_sort(int argc, const char* argv[]) {
     // although original assembly version declares byte array, i prefer using array of
     // 32-bit integers, as it's much more comfortable to deal with during debugging
     int32_t array[10] = {89, 10, 67, 1, 4, 27, 12, 34, 86, 3}; // .byte 89, 10, 67, 1, 4, 27, 12, 34, 86, 3
@@ -121,6 +121,4 @@ int main(int argc, const char* argv[]) {
     //  pushl $array_fmt
     //  call print_array10
     print_array10(array_fmt, array, ARRAY_SIZE);
-
-    return 0;
 }

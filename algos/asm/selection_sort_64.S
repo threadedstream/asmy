@@ -87,12 +87,17 @@ newline:
     sort_routine20:
         pushq %rbx
         pushq %r12
+        # use ARRAY_SIZE as a counter
         mov %rsi, %rcx
+        # ARRAY_SIZE - 1
         decq %rcx
+        # zero out rsi
         xor %rsi, %rsi
 
     outer_loop:
+        # mid_idx = esi
         mov %rsi, %r12
+        # rbx = rsi + 1
         mov %rsi, %rbx
         incq %rbx
 
@@ -110,8 +115,11 @@ newline:
         jmp inner_loop
 
     swap_vars:
+        # dl = contents of (array + offset stored in r12)
         movb (%rdi, %r12, 1), %dl
+        # al = contents of (array + offset stored in rsi)
         movb (%rdi, %rsi, 1), %al
+        #
         movb %dl, (%rdi, %rsi, 1)
         movb %al, (%rdi, %r12, 1)
         inc %rsi

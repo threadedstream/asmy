@@ -227,10 +227,10 @@ decrypted_message_fmt:
 
         jmp extended_eucl_loop
 
-        extended_eucl_assign_and_ret:
-            # *rout = r
-            movl -4(%rbp), %eax
-            movl %eax, (%r10)
+    extended_eucl_assign_and_ret:
+        # *rout = r
+        movl -4(%rbp), %eax
+        movl %eax, (%r10)
 
         # *uout = u
         movl -8(%rbp), %eax

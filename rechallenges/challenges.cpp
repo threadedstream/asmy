@@ -135,6 +135,8 @@ double challenge_36_f1() {
     eax = eax * 1664525;
 
     eax = eax + 1013904223;
+
+    return 0;
 }
 
 

@@ -76,7 +76,7 @@ void generate_keys(int32_t p, int32_t q, int32_t *e, int32_t *n, int32_t *d) {
     // phi(n) outputs the number of relatively prime numbers strictly less than n
     // given that p and q are both primes, we have:
     // phi(p * q) = phi(p) * phi(q) => (p - 1) * (q - 1)
-    const phi_n = (p - 1) * (q - 1);
+    const int32_t phi_n = (p - 1) * (q - 1);
 
     // now, choose number e which is relatively prime in relation to phi(n), but also
     // strictly less than the latter
@@ -127,7 +127,7 @@ int main(int argc, const char *argv[]) {
 
     const int64_t encrypted = cipher_message(message, (int64_t) e, (int64_t) n);
 
-    const int64_t    orig_message = decipher_message(encrypted, (int64_t) d, (int64_t) n);
+    const int64_t orig_message = decipher_message(encrypted, (int64_t) d, (int64_t) n);
 
     return 0;
 }
