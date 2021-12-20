@@ -9,5 +9,6 @@ Formerly known as an http server implementation in nasm, this project evolved in
   <li>https://revers.engineering/applied-re-the-stack/</li>
   <li>https://revers.engineering/applied-re-exceptions/</li>
   <li>https://revers.engineering/applied-re-accelerated-assembly-p1/</li>
-  <li>https://revers.engineering/applied-re-accelerated-assembly-p2/</li>  
+  <li>https://revers.engineering/applied-re-accelerated-assembly-p2/</li>
+  <li>https://cs61.seas.harvard.edu/site/2018/Asm3/</li>
 </ol>
