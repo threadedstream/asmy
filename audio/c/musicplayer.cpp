@@ -4,17 +4,23 @@
 
 
 int main(int argc, const char* argv[]) {
+    const auto main_addr = &main;
     unsigned int pcm, tmp, dir;
-    int rate, channels, seconds;
+    unsigned int rate, channels, seconds;
     snd_pcm_t *pcm_handle;
     snd_pcm_hw_params_t *params;
     snd_pcm_uframes_t frames;
     char *buff;
     int buff_size, loops;
 
-    rate 	 = 44100;
-    channels = 2;
-    seconds  = 3;
+    if (argc < 4) {
+        printf("Usage: ./<prog> <rate> <channels> <seconds>\n");
+        return -1;
+    }
+
+    rate 	 = atoi(argv[1]);
+    channels = atoi(argv[2]);
+    seconds  = atoi(argv[3]);
 
     /* Open the PCM device in playback mode */
     if (pcm = snd_pcm_open(&pcm_handle, "default",

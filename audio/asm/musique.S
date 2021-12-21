@@ -11,7 +11,7 @@ channels:
     .long 2
 
 seconds:
-    .long 172
+    .long 3
 
 pcm_device:
     .asciz "default"
@@ -37,6 +37,9 @@ failed_to_set_hardware_params:
 
 failed_to_allocate_memory:
     .asciz "Can't allocate memory for a buffer\n"
+
+correct_usage:
+    .asciz "Usage: ./<prog> <rate> <channels> <seconds>\n"
 
 early_end:
     .asciz "Early end of a file\n"
@@ -97,6 +100,22 @@ params:
 	    pushq %r13
 	    pushq %r12
 	    pushq %rbx
+        sub $40, %rsp
+        movl 8(%rbp), %eax # hopefully, it's accessing argc
+        cmpl $4, %eax
+        lea correct_usage(%rip), %rax
+        cmovs %rax, %rdi
+        jl report_failure_exit
+        mov 24(%rbp), %rdi
+        call atoi
+        mov %rax, rate(%rip)
+        mov 32(%rbp), %rdi
+        call atoi
+        mov %rax, channels(%rip)
+        mov 40(%rbp), %rdi
+        call atoi
+        mov %rax, seconds(%rip)
+
         // opening a device
         lea pcm_handle(%rip), %rdi
         lea pcm_device(%rip), %rsi
@@ -357,6 +376,18 @@ params:
 //        lea (%rdi), %rdi
 //        call snd_pcm_hw_params_alloca
 
+    setup_params:
+        endbr64
+        mov 24(%rbp), %rdi
+        call atoi
+        mov %rax, rate(%rip)
+        mov 32(%rbp), %rdi
+        call atoi
+        mov %rax, channels(%rip)
+        mov 40(%rbp), %rdi
+        call atoi
+        mov %rax, seconds(%rip)
+        ret
 
     report_failure_exit:
         xor %rax, %rax
@@ -373,6 +404,7 @@ params:
         popq %r14
         popq %r15
         popq %rbp
+        add $40, %rsp
         add $624, %rsp
         xor %rdi, %rdi
 
