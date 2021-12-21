@@ -13,13 +13,13 @@ webserver: main.o
 webserver.s: main.c
 	gcc $(FLAGS) -o webserver.s webserver.c
 
-socket32.o: socket.asm
+socket32.o: webserver.asm
 	nasm $(NASM_X32_FLAGS) -o webserver32.o webserver.asm
 
 socket32: socket32.o
 	ld $(LINKER_X32_FLAGS) -o webserver32 webserver32.o
 
-socket64.o: socket.asm
+socket64.o: webserver.asm
 	nasm $(NASM_X64_FLAGS) -o webserver64.o webserver.asm
 
 socket64: socket64.o

@@ -93,17 +93,22 @@ decrypted_message_fmt:
 
     # int32_t cipher_message(int32_t message, int32_t e, int32_t n)
     # message in %edi, e in %esi, n in %edx
+###############################################################################################
     cipher_message:
         call power_mod
         ret
+###############################################################################################
 
     # int32_t decipher_message(int32_t encrypted, int32_t d, int32_t n)
     # encrypted in %edi, d in %esi, n in %edx
+###############################################################################################
     decipher_message:
         call power_mod
         ret
+###############################################################################################
 
     # int32_t power_mod(int32_t base, int32_t exp, int32_t mod)
+###############################################################################################
     power_mod:
         pushq %rbx
         movl $1, %r8d
@@ -136,9 +141,11 @@ decrypted_message_fmt:
         popq %rbx
         mov %r8, %rax
         ret
+###############################################################################################
 
     # void extended_eucl_iter(int32_t a, int32_t b, int32_t *rout, int32_t *vout, int32_t *uout)
     # a in %edi, b in %esi, rout in %rdx, vout in %rcx, uout in %r8
+###############################################################################################
     extended_eucl_iter:
         # initialization stage
         pushq %rbx
@@ -248,9 +255,11 @@ decrypted_message_fmt:
 
         xor %rax, %rax
         ret
+###############################################################################################
 
     # int32_t choose_neatly_fitting_prime(int32_t n)
     # n in %rdi
+###############################################################################################
     choose_neatly_fitting_prime:
         xor %rax, %rax
         xor %r8, %r8
@@ -286,9 +295,11 @@ decrypted_message_fmt:
         # return prime_table[i]
         movl (%rsi, %r8, 4), %eax
         ret
+###############################################################################################
 
     # void generate_keys(int32_t p, int32_t q, int32_t* e, int32_t *n, int32_t *d)
     # p in %edi, q in %esi, e in %rdx, n in %rcx, d in %r8
+###############################################################################################
     generate_keys:
         pushq %rbx
         pushq %r10
@@ -407,6 +418,7 @@ decrypted_message_fmt:
         movl $-1, %eax
         # return
         ret
+###############################################################################################
 
     _exit:
         add $12, %rsp
