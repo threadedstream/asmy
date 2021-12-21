@@ -4,15 +4,6 @@
 // TODO(threadedstream): make parameters below dynamic, i.e let user decide what those values
 // should be
 
-rate:
-    .long 44100
-
-channels:
-    .long 2
-
-seconds:
-    .long 3
-
 pcm_device:
     .asciz "default"
 
@@ -85,6 +76,16 @@ pcm_handle:
 params:
     .zero 8
 
+rate:
+    .long 0
+
+channels:
+    .long 0
+
+seconds:
+    .long 0
+
+
 
 .section .text
     .globl _start
@@ -92,28 +93,42 @@ params:
     _start:
         // for some reason, program segfaults when pushing %r14 onto the stack
         pushq %rbp
-        xorl  %ecx, %ecx
-        xorl  %edx, %edx
         mov %rsp, %rbp
         pushq %r15
         pushq %r14
 	    pushq %r13
 	    pushq %r12
 	    pushq %rbx
-        sub $40, %rsp
+	    // rsp = rsp - 48; is 16 byte aligned? Yes! But we should account
+	    // for the first call, which will decrement rsp by 8.
         movl 8(%rbp), %eax # hopefully, it's accessing argc
         cmpl $4, %eax
         lea correct_usage(%rip), %rax
         cmovs %rax, %rdi
         jl report_failure_exit
-        mov 24(%rbp), %rdi
-        call atoi
+
+        # actual: rate = atoi(argv[1])
+        # optimized to:  rate = strtol(argv[1], 0, 10)
+        movq 24(%rbp), %rdi
+        xorl %esi, %esi
+        movl $10, %edx
+        call strtol
         mov %rax, rate(%rip)
-        mov 32(%rbp), %rdi
-        call atoi
+
+        # actual: channels = atoi(argv[2])
+        # optimized to: channels = strtol(argv[2], 0, 10)
+        movq 32(%rbp), %rdi
+        xorl %esi, %esi
+        movl $10, %edx
+        call strtol
         mov %rax, channels(%rip)
-        mov 40(%rbp), %rdi
-        call atoi
+
+        # actual: seconds = atoi(argv[3])
+        # optimized to: seconds = strtol(argv[3], 0, 10)
+        movq 40(%rbp), %rdi
+        xorl %esi, %esi
+        movl $10, %edx
+        call strtol
         mov %rax, seconds(%rip)
 
         // opening a device
@@ -123,11 +138,12 @@ params:
         xor %ecx, %ecx
         call snd_pcm_open
         //  used to be cmp $0, %eax; jl report_failure_exit
-        //  look that one up in assembly output produces by gcc
+        //  looked that one up in assembly output produced by gcc
         //  command used to generate assembly listing: gcc -m64 -O2 -S musicplayer.c
         testl %eax, %eax
 
         // save return value in pcm
+        // UPD: have no clue why to do this anyway
         mov %eax, pcm(%rip)
         mov $failed_to_open_device_fmt, %rax
         cmovs %rax, %rdi
@@ -309,6 +325,8 @@ params:
         idivl %ecx
 
         mov %rax, %rbx
+        # is 20 some magical constant? Definitely should check that out.
+        addq $20, %rbx
 
     // here it comes
     loop:
@@ -334,7 +352,6 @@ params:
         movl (%rdx), %edx
         call snd_pcm_writei
 
-        // probably, will replace it by something more useful
         // eax == -EPIPE?
         cmp $-32, %eax
         je prepare_playback
@@ -404,7 +421,6 @@ params:
         popq %r14
         popq %r15
         popq %rbp
-        add $40, %rsp
         add $624, %rsp
         xor %rdi, %rdi
 

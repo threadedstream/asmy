@@ -1,71 +1,70 @@
-	.file	"musicplayer.c"
+	.file	"musicplayer.cpp"
 	.text
-	.section	.rodata.str1.1,"aMS",@progbits,1
-.LC0:
-	.string	"default"
 	.section	.rodata.str1.8,"aMS",@progbits,1
 	.align 8
+.LC0:
+	.string	"Usage: ./<prog> <rate> <channels> <seconds>"
+	.section	.rodata.str1.1,"aMS",@progbits,1
 .LC1:
-	.string	"ERROR: Can't open \"%s\" PCM device. %s\n"
+	.string	"default"
+	.section	.rodata.str1.8
 	.align 8
 .LC2:
+	.string	"ERROR: Can't open \"%s\" PCM device. %s\n"
+	.align 8
+.LC3:
 	.string	"ERROR: Can't set interleaved mode. %s\n"
 	.section	.rodata.str1.1
-.LC3:
+.LC4:
 	.string	"ERROR: Can't set format. %s\n"
 	.section	.rodata.str1.8
 	.align 8
-.LC4:
+.LC5:
 	.string	"ERROR: Can't set channels number. %s\n"
 	.section	.rodata.str1.1
-.LC5:
+.LC6:
 	.string	"ERROR: Can't set rate. %s\n"
 	.section	.rodata.str1.8
 	.align 8
-.LC6:
-	.string	"ERROR: Can't set harware parameters. %s\n"
-	.section	.rodata.str1.1
 .LC7:
-	.string	"PCM name: '%s'\n"
+	.string	"ERROR: Can't set hardware parameters. %s\n"
+	.section	.rodata.str1.1
 .LC8:
-	.string	"PCM state: %s\n"
+	.string	"PCM name: '%s'\n"
 .LC9:
-	.string	"channels: %i "
+	.string	"PCM state: %s\n"
 .LC10:
-	.string	"(mono)"
+	.string	"channels: %i "
 .LC11:
-	.string	"(stereo)"
+	.string	"(mono)"
 .LC12:
-	.string	"rate: %d bps\n"
+	.string	"(stereo)"
 .LC13:
-	.string	"seconds: %d\n"
+	.string	"rate: %d bps\n"
 .LC14:
-	.string	"Early end of file."
+	.string	"seconds: %d\n"
 .LC15:
+	.string	"Early end of file."
+.LC16:
 	.string	"XRUN."
 	.section	.text.startup,"ax",@progbits
 	.p2align 4
 	.globl	main
 	.type	main, @function
 main:
-.LFB69:
+.LFB51:
 	.cfi_startproc
-	endbr64
 	pushq	%rbp
 	.cfi_def_cfa_offset 16
 	.cfi_offset 6, -16
-	xorl	%ecx, %ecx
-	xorl	%edx, %edx
-	leaq	.LC0(%rip), %rsi
 	movq	%rsp, %rbp
 	.cfi_def_cfa_register 6
 	pushq	%r15
 	pushq	%r14
-	leaq	-72(%rbp), %rdi
 	pushq	%r13
 	pushq	%r12
 	pushq	%rbx
-	subq	$40, %rsp
+	subq	$56, %rsp
 	.cfi_offset 15, -24
 	.cfi_offset 14, -32
 	.cfi_offset 13, -40
@@ -74,32 +73,39 @@ main:
 	movq	%fs:40, %rax
 	movq	%rax, -56(%rbp)
 	xorl	%eax, %eax
-	movl	$44100, -76(%rbp)
+	cmpl	$3, %edi
+	jle	.L20
+	movq	8(%rsi), %rdi
+	movq	%rsi, %rbx
+	xorl	%esi, %esi
+	movl	$10, %edx
+	leaq	.LC1(%rip), %r14
+	call	strtol@PLT
+	movq	16(%rbx), %rdi
+	xorl	%esi, %esi
+	movl	$10, %edx
+	movl	%eax, -76(%rbp)
+	call	strtol@PLT
+	movq	24(%rbx), %rdi
+	xorl	%esi, %esi
+	movl	$10, %edx
+	movq	%rax, %r13
+	movl	%eax, %r12d
+	call	strtol@PLT
+	xorl	%ecx, %ecx
+	xorl	%edx, %edx
+	leaq	-72(%rbp), %rdi
+	movq	%r14, %rsi
+	movl	%eax, -84(%rbp)
+	movq	%rax, %rbx
 	call	snd_pcm_open@PLT
 	testl	%eax, %eax
-	js	.L25
-.L2:
-	call	snd_pcm_hw_params_sizeof@PLT
-	movq	%rsp, %rcx
-	addq	$23, %rax
-	movq	%rax, %rdx
-	andq	$-4096, %rax
-	subq	%rax, %rcx
-	andq	$-16, %rdx
-	movq	%rcx, %rax
-	cmpq	%rax, %rsp
-	je	.L4
-.L26:
-	subq	$4096, %rsp
-	orq	$0, 4088(%rsp)
-	cmpq	%rax, %rsp
-	jne	.L26
+	js	.L21
 .L4:
-	andl	$4095, %edx
-	subq	%rdx, %rsp
-	testq	%rdx, %rdx
-	jne	.L27
-.L5:
+	call	snd_pcm_hw_params_sizeof@PLT
+	addq	$23, %rax
+	andq	$-16, %rax
+	subq	%rax, %rsp
 	call	snd_pcm_hw_params_sizeof@PLT
 	leaq	15(%rsp), %r14
 	xorl	%esi, %esi
@@ -115,94 +121,83 @@ main:
 	movq	%r14, %rsi
 	call	snd_pcm_hw_params_set_access@PLT
 	testl	%eax, %eax
-	jns	.L6
-	movl	$1, %edi
-	call	snd_strerror@PLT
-	leaq	.LC2(%rip), %rsi
-	movl	$1, %edi
-	movq	%rax, %rdx
-	xorl	%eax, %eax
-	call	__printf_chk@PLT
-.L6:
+	js	.L22
+.L5:
 	movq	-72(%rbp), %rdi
 	movl	$2, %edx
 	movq	%r14, %rsi
 	call	snd_pcm_hw_params_set_format@PLT
 	testl	%eax, %eax
-	js	.L28
-.L7:
+	js	.L23
+.L6:
 	movq	-72(%rbp), %rdi
-	movl	$2, %edx
+	movl	%r12d, %edx
 	movq	%r14, %rsi
 	call	snd_pcm_hw_params_set_channels@PLT
 	testl	%eax, %eax
-	js	.L29
-.L8:
+	js	.L24
+.L7:
 	movq	-72(%rbp), %rdi
 	xorl	%ecx, %ecx
 	leaq	-76(%rbp), %rdx
 	movq	%r14, %rsi
 	call	snd_pcm_hw_params_set_rate_near@PLT
 	testl	%eax, %eax
-	js	.L30
-.L9:
+	js	.L25
+.L8:
 	movq	-72(%rbp), %rdi
 	movq	%r14, %rsi
 	call	snd_pcm_hw_params@PLT
 	testl	%eax, %eax
-	js	.L31
-.L10:
+	js	.L26
+.L9:
 	movq	-72(%rbp), %rdi
 	leaq	-80(%rbp), %r15
 	call	snd_pcm_name@PLT
-	leaq	.LC7(%rip), %rsi
-	movl	$1, %edi
-	movq	%rax, %rdx
+	leaq	.LC8(%rip), %rdi
+	movq	%rax, %rsi
 	xorl	%eax, %eax
-	call	__printf_chk@PLT
+	call	printf@PLT
 	movq	-72(%rbp), %rdi
 	call	snd_pcm_state@PLT
 	movl	%eax, %edi
 	call	snd_pcm_state_name@PLT
-	leaq	.LC8(%rip), %rsi
-	movl	$1, %edi
-	movq	%rax, %rdx
+	leaq	.LC9(%rip), %rdi
+	movq	%rax, %rsi
 	xorl	%eax, %eax
-	call	__printf_chk@PLT
+	call	printf@PLT
 	movq	%r15, %rsi
 	movq	%r14, %rdi
 	call	snd_pcm_hw_params_get_channels@PLT
-	movl	-80(%rbp), %edx
-	movl	$1, %edi
+	movl	-80(%rbp), %esi
+	leaq	.LC10(%rip), %rdi
 	xorl	%eax, %eax
-	leaq	.LC9(%rip), %rsi
-	call	__printf_chk@PLT
+	call	printf@PLT
 	movl	-80(%rbp), %eax
 	cmpl	$1, %eax
-	je	.L32
+	je	.L27
 	cmpl	$2, %eax
-	je	.L33
-.L12:
+	je	.L28
+.L11:
 	xorl	%edx, %edx
+	imull	$1000000, %ebx, %ebx
 	movq	%r15, %rsi
 	movq	%r14, %rdi
 	call	snd_pcm_hw_params_get_rate@PLT
-	movl	-80(%rbp), %edx
-	movl	$1, %edi
+	movl	-80(%rbp), %esi
+	leaq	.LC13(%rip), %rdi
 	xorl	%eax, %eax
-	leaq	.LC12(%rip), %rsi
-	call	__printf_chk@PLT
-	movl	$3, %edx
-	leaq	.LC13(%rip), %rsi
+	call	printf@PLT
+	movl	-84(%rbp), %esi
+	leaq	.LC14(%rip), %rdi
 	xorl	%eax, %eax
-	movl	$1, %edi
-	call	__printf_chk@PLT
+	call	printf@PLT
 	leaq	-64(%rbp), %rsi
 	xorl	%edx, %edx
 	movq	%r14, %rdi
 	call	snd_pcm_hw_params_get_period_size@PLT
-	movl	-64(%rbp), %eax
-	leal	0(,%rax,4), %r13d
+	imull	-64(%rbp), %r13d
+	addl	%r13d, %r13d
 	movslq	%r13d, %r13
 	movq	%r13, %rdi
 	call	malloc@PLT
@@ -211,52 +206,51 @@ main:
 	movq	%r14, %rdi
 	movq	%rax, %r12
 	call	snd_pcm_hw_params_get_period_time@PLT
-	movl	-80(%rbp), %ecx
-	movl	$3000000, %eax
+	movl	%ebx, %eax
 	xorl	%edx, %edx
-	divl	%ecx
+	divl	-80(%rbp)
 	movl	%eax, %ebx
-	cmpl	$3000000, %ecx
-	ja	.L13
-	leaq	.LC15(%rip), %r14
-	jmp	.L17
+	testl	%eax, %eax
+	jle	.L12
+	leaq	.LC16(%rip), %r14
+	jmp	.L15
 	.p2align 4,,10
 	.p2align 3
-.L16:
+.L14:
 	subl	$1, %ebx
-	je	.L13
-.L17:
+	je	.L12
+.L15:
 	xorl	%edi, %edi
 	movq	%r13, %rdx
 	movq	%r12, %rsi
 	call	read@PLT
 	testq	%rax, %rax
-	je	.L34
+	je	.L29
 	movq	-64(%rbp), %rdx
 	movq	-72(%rbp), %rdi
 	movq	%r12, %rsi
 	call	snd_pcm_writei@PLT
 	cmpl	$-32, %eax
-	jne	.L16
+	jne	.L14
 	movq	%r14, %rdi
 	call	puts@PLT
 	movq	-72(%rbp), %rdi
 	call	snd_pcm_prepare@PLT
 	subl	$1, %ebx
-	jne	.L17
-.L13:
+	jne	.L15
+.L12:
 	movq	-72(%rbp), %rdi
 	call	snd_pcm_drain@PLT
 	movq	-72(%rbp), %rdi
 	call	snd_pcm_close@PLT
 	movq	%r12, %rdi
 	call	free@PLT
-.L15:
-	movq	-56(%rbp), %rax
-	xorq	%fs:40, %rax
-	jne	.L35
-	leaq	-40(%rbp), %rsp
 	xorl	%eax, %eax
+.L1:
+	movq	-56(%rbp), %rdx
+	subq	%fs:40, %rdx
+	jne	.L30
+	leaq	-40(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
 	popq	%r13
@@ -266,88 +260,78 @@ main:
 	.cfi_remember_state
 	.cfi_def_cfa 7, 8
 	ret
-.L34:
-	.cfi_restore_state
-	leaq	.LC14(%rip), %rdi
-	call	puts@PLT
-	jmp	.L15
-.L31:
-	movl	$1, %edi
-	call	snd_strerror@PLT
-	leaq	.LC6(%rip), %rsi
-	movl	$1, %edi
-	movq	%rax, %rdx
-	xorl	%eax, %eax
-	call	__printf_chk@PLT
-	jmp	.L10
-.L30:
-	movl	$1, %edi
-	call	snd_strerror@PLT
-	leaq	.LC5(%rip), %rsi
-	movl	$1, %edi
-	movq	%rax, %rdx
-	xorl	%eax, %eax
-	call	__printf_chk@PLT
-	jmp	.L9
 .L29:
+	.cfi_restore_state
+	leaq	.LC15(%rip), %rdi
+	call	puts@PLT
+	xorl	%eax, %eax
+	jmp	.L1
+.L26:
 	movl	$1, %edi
 	call	snd_strerror@PLT
-	leaq	.LC4(%rip), %rsi
-	movl	$1, %edi
-	movq	%rax, %rdx
+	leaq	.LC7(%rip), %rdi
+	movq	%rax, %rsi
 	xorl	%eax, %eax
-	call	__printf_chk@PLT
-	jmp	.L8
-.L28:
-	movl	$1, %edi
-	call	snd_strerror@PLT
-	leaq	.LC3(%rip), %rsi
-	movl	$1, %edi
-	movq	%rax, %rdx
-	xorl	%eax, %eax
-	call	__printf_chk@PLT
-	jmp	.L7
+	call	printf@PLT
+	jmp	.L9
 .L25:
 	movl	$1, %edi
 	call	snd_strerror@PLT
-	leaq	.LC0(%rip), %rdx
-	movl	$1, %edi
-	leaq	.LC1(%rip), %rsi
-	movq	%rax, %rcx
+	leaq	.LC6(%rip), %rdi
+	movq	%rax, %rsi
 	xorl	%eax, %eax
-	call	__printf_chk@PLT
-	jmp	.L2
-.L32:
-	leaq	.LC10(%rip), %rdi
-	call	puts@PLT
-	jmp	.L12
-.L27:
-	orq	$0, -8(%rsp,%rdx)
+	call	printf@PLT
+	jmp	.L8
+.L24:
+	movl	$1, %edi
+	call	snd_strerror@PLT
+	leaq	.LC5(%rip), %rdi
+	movq	%rax, %rsi
+	xorl	%eax, %eax
+	call	printf@PLT
+	jmp	.L7
+.L23:
+	movl	$1, %edi
+	call	snd_strerror@PLT
+	leaq	.LC4(%rip), %rdi
+	movq	%rax, %rsi
+	xorl	%eax, %eax
+	call	printf@PLT
+	jmp	.L6
+.L22:
+	movl	$1, %edi
+	call	snd_strerror@PLT
+	leaq	.LC3(%rip), %rdi
+	movq	%rax, %rsi
+	xorl	%eax, %eax
+	call	printf@PLT
 	jmp	.L5
-.L33:
+.L21:
+	movl	$1, %edi
+	call	snd_strerror@PLT
+	movq	%r14, %rsi
+	leaq	.LC2(%rip), %rdi
+	movq	%rax, %rdx
+	xorl	%eax, %eax
+	call	printf@PLT
+	jmp	.L4
+.L27:
 	leaq	.LC11(%rip), %rdi
 	call	puts@PLT
-	jmp	.L12
-.L35:
+	jmp	.L11
+.L28:
+	leaq	.LC12(%rip), %rdi
+	call	puts@PLT
+	jmp	.L11
+.L20:
+	leaq	.LC0(%rip), %rdi
+	call	puts@PLT
+	orl	$-1, %eax
+	jmp	.L1
+.L30:
 	call	__stack_chk_fail@PLT
 	.cfi_endproc
-.LFE69:
+.LFE51:
 	.size	main, .-main
-	.ident	"GCC: (Ubuntu 9.3.0-17ubuntu1~20.04) 9.3.0"
+	.ident	"GCC: (GNU) 11.1.0"
 	.section	.note.GNU-stack,"",@progbits
-	.section	.note.gnu.property,"a"
-	.align 8
-	.long	 1f - 0f
-	.long	 4f - 1f
-	.long	 5
-0:
-	.string	 "GNU"
-1:
-	.align 8
-	.long	 0xc0000002
-	.long	 3f - 2f
-2:
-	.long	 0x3
-3:
-	.align 8
-4:

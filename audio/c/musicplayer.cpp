@@ -84,7 +84,7 @@ int main(int argc, const char* argv[]) {
 
     snd_pcm_hw_params_get_period_time(params, &tmp, NULL);
 
-    for (loops = (seconds * 1000000) / tmp; loops > 0; loops--) {
+    for (loops = ((seconds * 1000000) / tmp) + 1; loops > 0; loops--) {
 
         if (pcm = read(0, buff, buff_size) == 0) {
             printf("Early end of file.\n");

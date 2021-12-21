@@ -254,11 +254,15 @@ decrypted_message_fmt:
     choose_neatly_fitting_prime:
         xor %rax, %rax
         xor %r8, %r8
+        // TODO(threadedstream): avoid costly division by using shift
+        ############################################
+        // should be replaced by something like this:
+        //      mov $prime_table_size, %eax
+        //      shr $2, %eax
         # const int32_t prime_table_len = sizeof(prime_table) / sizeof(prime_table[0]);
         mov $prime_table_size, %eax
-        movl $4, %r8d
-        cltd
-        idivl %r8d
+        shr $2, %eax
+        ############################################
 
         mov $prime_table, %rsi
 
