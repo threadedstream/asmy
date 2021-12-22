@@ -1,9 +1,6 @@
 
 .section .data
 
-// TODO(threadedstream): make parameters below dynamic, i.e let user decide what those values
-// should be
-
 pcm_device:
     .asciz "default"
 
@@ -165,7 +162,7 @@ seconds:
         //  subq	%rax, %rcx   -> rcx = rcx - rax = 0x7fffffffdd10 - 0 = 0x7fffffffdd10
         //  andq	$-16, %rdx   -> rdx = rdx & 0xfffffffffffffff0 = 624, note that ANDing any value with -16 will make this value a multiple of 16
         //                          also take into account that operation chooses the closest multiple right before that same initial value in case if
-        //                          value if not aligned, and nops (leaves the value as it is) otherwise.
+        //                          value is not aligned, and nops (leaves the value as it is) otherwise.
         //  movq	%rcx, %rax   -> rax = rcx = 0x7fffffffdd10
         //  cmpq	%rax, %rsp   -> rax == rsp?
         //  je	.L4              -> yep, branch to .L4
