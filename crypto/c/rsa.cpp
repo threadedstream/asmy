@@ -95,6 +95,7 @@ void generate_keys(int32_t p, int32_t q, int32_t *e, int32_t *n, int32_t *d) {
     int32_t v = 0, dp = 0, r = 0;
     extended_eucl_rec(ep, 1, 0, phi_n, 0, 1, &r, &v, &dp);
 
+    // handle negative values of dp
     dp = dp % phi_n;
     if (dp < 0) {
         dp += phi_n;
@@ -108,10 +109,12 @@ void generate_keys(int32_t p, int32_t q, int32_t *e, int32_t *n, int32_t *d) {
 }
 
 int64_t cipher_message(int64_t message, int64_t e, int64_t n) {
+    // message ^ e (mod n) = (message ^ e) % n = C(e, n)
     return power_mod(message, e, n);
 }
 
 int64_t decipher_message(int64_t encrypted, int64_t d, int64_t n) {
+    // C(e, n) ^ d (mod n) = (C(e, n) ^ d) % n = message
     return power_mod(encrypted, d, n);
 }
 

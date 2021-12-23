@@ -158,7 +158,7 @@ decrypted_message_fmt:
         mov %rsp, %rbp
         sub $36, %rsp
         # int32_t r = a
-        movl %edi, -4(%rbp)
+        movl %edi, -4(%rbp) # rbp - 4
         # int32_t u = 1
         movl $1, -8(%rbp)
         # int32_t v = 0
@@ -175,9 +175,11 @@ decrypted_message_fmt:
         movl $0, -32(%rbp)
         # int32_t rpold = 0
         movl $0, -36(%rbp)
+        # rax = 0
         xor %rax, %rax
 
     extended_eucl_loop:
+        # compare rp to 0
         cmpl $0, -16(%rbp)
         jz extended_eucl_assign_and_ret
 
@@ -196,13 +198,21 @@ decrypted_message_fmt:
 
     extended_eucl_update_ps:
         # up = u - (r / rp) * up
+        # let's break it down to multiple parts
+
+        # r / rp
         mov -4(%rbp), %eax
         cltd
         idivl -16(%rbp)
+        # save result of r / rp for future use
         movl %eax, %ebx
+        # (r / rp) * up
         imull -20(%rbp)
+        # ((r / rp) * up) - u
         subl -8(%rbp), %eax
+        # -1 * ((r / rp) * up) - u)
         negl %eax
+        # up = -1 * ((r / rp) * up) - u)
         movl %eax, -20(%rbp)
 
         # vp = v - (r / rp) * vp
@@ -253,6 +263,7 @@ decrypted_message_fmt:
         popq %r10
         popq %rbx
 
+        #  rax = 0
         xor %rax, %rax
         ret
 ###############################################################################################
