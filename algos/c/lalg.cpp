@@ -73,11 +73,10 @@ float clangDotO2(const Vec& v1, const Vec& v2) {
     // addss   xmm1, xmm0
     xmm1 = _mm_add_ss(xmm1, xmm0);
 
-
     //  movsd   xmm2, qword ptr [rdi + 8]
     //  movsd   xmm0, qword ptr [rsi + 8]
-    xmm2 = _mm_load_sd(reinterpret_cast<double*>(v1_ptr+2));
-    xmm0 = _mm_load_sd(reinterpret_cast<double*>(v2_ptr+2));
+    xmm2   = (__m128) _mm_load_sd(reinterpret_cast<double*>(v1_ptr+2));
+    xmm0   = (__m128) _mm_load_sd(reinterpret_cast<double*>(v2_ptr+2));
 
     //  mulps   xmm0, xmm2
     //  addss   xmm1, xmm0
@@ -86,7 +85,42 @@ float clangDotO2(const Vec& v1, const Vec& v2) {
 
     //  shufps  xmm0, xmm0, 85
     //  addss   xmm0, xmm1
-    // TODO(threadedstream):
+    xmm0 = _mm_shuffle_ps(xmm0, xmm0, 85);
+    xmm0 = _mm_add_ss(xmm0, xmm1);
+
+    _mm_store_ss(&res, xmm0);
 
     return res;
+}
+
+
+// NOTE: m2 should be in column-major form
+Mat4x4 matMult(const Mat4x4& m1, const Mat4x4& m2) {
+    Mat4x4 m3 = {};
+
+    // m3.entry_0
+    m3.entry_0.x = clangDotO2(m1.entry_0, m2.entry_0);
+    m3.entry_0.y = clangDotO2(m1.entry_0, m2.entry_1);
+    m3.entry_0.z = clangDotO2(m1.entry_0, m2.entry_2);
+    m3.entry_0.w = clangDotO2(m1.entry_0, m2.entry_3);
+
+    // m3.entry_1
+    m3.entry_1.x = clangDotO2(m1.entry_1, m2.entry_0);
+    m3.entry_1.y = clangDotO2(m1.entry_1, m2.entry_1);
+    m3.entry_1.z = clangDotO2(m1.entry_1, m2.entry_2);
+    m3.entry_1.w = clangDotO2(m1.entry_1, m2.entry_3);
+
+    // m3.entry_2
+    m3.entry_2.x = clangDotO2(m1.entry_2, m2.entry_0);
+    m3.entry_2.y = clangDotO2(m1.entry_2, m2.entry_1);
+    m3.entry_2.z = clangDotO2(m1.entry_2, m2.entry_2);
+    m3.entry_2.w = clangDotO2(m1.entry_2, m2.entry_3);
+
+    // m3.entry_3
+    m3.entry_3.x = clangDotO2(m1.entry_3, m2.entry_0);
+    m3.entry_3.y = clangDotO2(m1.entry_3, m2.entry_1);
+    m3.entry_3.z = clangDotO2(m1.entry_3, m2.entry_2);
+    m3.entry_3.w = clangDotO2(m1.entry_3, m2.entry_3);
+
+    return m3;
 }

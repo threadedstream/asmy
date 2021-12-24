@@ -2,7 +2,7 @@
 
 int main(int argc, const char* argv[]) {
 
-    testDots();
+    testMatMult();
 
     return 0;
 }
