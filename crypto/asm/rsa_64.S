@@ -202,6 +202,8 @@ decrypted_message_fmt:
 
         # r / rp
         mov -4(%rbp), %eax
+        # converts %eax to %eax:%edx, sign-extending edx according to msb(most significant bit, or sign bit)
+        # of eax, i.e if msb is 1,then %edx is represented in the following form 0xFFFFFFFF, and 0x00000000 otherwise
         cltd
         idivl -16(%rbp)
         # save result of r / rp for future use
