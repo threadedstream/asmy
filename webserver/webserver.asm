@@ -22,7 +22,7 @@ section .data
     client_info: db "Clientfd: %d", 0xa, 0x0
     bind_code: db  "Bind code: %d", 0xa, 0x0
     exit_message: db "Exiting from an application",0xa,0x0
-    response: db "HTTP/1.1 200 OK",0xd, 0xa,"Content-Type: text/html",0xd, 0xa, "Connection: Close;",0xd,0xa,0xd,0xa,"<h1>Hello, Assembly Hero!</h1>", 0x0
+    response: db "HTTP/1.1 200 OK",0xd, 0xa,"Content-Type: text/html",0xd, 0xa, "Connection: Close;",0xd,0xa,0xd,0xa,"<h1>What's up, Gazik</h1>", 0x0
     request_msg: db "Request from client: %s\n"
     start_write: db "write start!",0xa,0x0
     end_write: db "write end!", 0xa, 0x0
